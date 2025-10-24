@@ -16,6 +16,7 @@ const Processing = () => {
   const outlet = location.state?.outlet || "The Hindu";
 
   const [detectedWebsite, setDetectedWebsite] = useState("");
+  const [showHomeButton, setShowHomeButton] = useState(false);
   const [stages, setStages] = useState<ProcessingStage[]>([
     { id: 0, label: "Detecting Official Website", status: "processing" },
     { id: 1, label: "Extracting Journalist Profiles", status: "pending" },
@@ -33,113 +34,164 @@ const Processing = () => {
       try {
         // Stage 0: Website Detection
         const website = await detectWebsite(outlet);
-        setDetectedWebsite(website || "");
-        setStages(prev => prev.map(s => s.id === 0 ? { ...s, status: "complete" } : s));
-        setStatusMessages(prev => [
-          ...prev,
-          website
-            ? `✓ Detected official website: ${website}`
-            : "❌ No official website found.",
-          "Verified source authenticity"
-        ]);
 
-        // Stage 1: Profile Extraction
-        setStages(prev => prev.map(s => s.id === 1 ? { ...s, status: "processing" } : s));
-        setStatusMessages(prev => [
-          ...prev,
-          "Extracting journalist metadata from source..."
-        ]);
-
-        let journalists = [];
-        try {
-          journalists = await extractJournalists(website);
-        } catch {
-          setStatusMessages(prev => [
+        if (!website) {
+          setStatusMessages((prev) => [
             ...prev,
-            "❌ Live extraction failed: No journalist data to show."
+            "❌ No official website detected for this outlet.",
+            "Process stopped — please verify the outlet name.",
           ]);
-          journalists = [];
-        }
-
-        if (!journalists || journalists.length === 0) {
-          setStatusMessages(prev => [
-            ...prev,
-            "❌ No journalist profiles found for this outlet."
-          ]);
-          sessionStorage.setItem("outletData", JSON.stringify({
-            outlet,
-            detectedWebsite: website || "",
-            journalists: [],
-            totalArticles: 0,
-            topSection: { name: "N/A", percentage: 0 },
-            mostActive: { name: "N/A", count: 0 }
-          }));
-          setTimeout(() => navigate("/dashboard"), 1000);
+          setStages((prev) =>
+            prev.map((s) =>
+              s.id === 0 ? { ...s, status: "complete" } : s
+            )
+          );
+          setShowHomeButton(true);
           return;
         }
 
-        setStatusMessages(prev => [
+        setDetectedWebsite(website);
+        setStatusMessages((prev) => [
           ...prev,
-          `✓ Extracted ${journalists.length} journalist profiles`
+          `🌐 Detected website: ${website}`,
+          "Proceeding to journalist extraction...",
         ]);
-        setStages(prev => prev.map(s => s.id === 1 ? { ...s, status: "complete" } : s));
+        setStages((prev) =>
+          prev.map((s) =>
+            s.id === 0 ? { ...s, status: "complete" } : s
+          )
+        );
 
-        // Stage 2: Intelligence Analysis
-        setStages(prev => prev.map(s => s.id === 2 ? { ...s, status: "processing" } : s));
-        setStatusMessages(prev => [
+        // Stage 1: Journalist Extraction
+        setStages((prev) =>
+          prev.map((s) =>
+            s.id === 1 ? { ...s, status: "processing" } : s
+          )
+        );
+        setStatusMessages((prev) => [
           ...prev,
-          "Analyzing article patterns...",
-          "Extracting keywords and topics..."
+          "Extracting journalist details from the website...",
         ]);
+
+        let journalists: any[] = [];
+
+        try {
+          journalists = await extractJournalists(website);
+
+          if (!journalists || journalists.length === 0) {
+            setStatusMessages((prev) => [
+              ...prev,
+              "❌ No journalist profiles found.",
+              "Stopping process — no valid data detected.",
+            ]);
+            setStages((prev) =>
+              prev.map((s) =>
+                s.id === 1 ? { ...s, status: "complete" } : s
+              )
+            );
+            setShowHomeButton(true);
+            return;
+          }
+        } catch (err) {
+          setStatusMessages((prev) => [
+            ...prev,
+            "❌ Live extraction failed.",
+            "No mock data will be used because a real website was found.",
+          ]);
+          setStages((prev) =>
+            prev.map((s) =>
+              s.id === 1 ? { ...s, status: "complete" } : s
+            )
+          );
+          setShowHomeButton(true);
+          return;
+        }
+
+        // Stage 2: Analysis
+        setStatusMessages((prev) => [
+          ...prev,
+          `✓ Extracted ${journalists.length} journalist profiles.`,
+          "Starting intelligence analysis...",
+        ]);
+        setStages((prev) =>
+          prev.map((s) =>
+            s.id === 2 ? { ...s, status: "processing" } : s
+          )
+        );
+
         const analyzed = analyzeJournalists(journalists);
-        setStatusMessages(prev => [
-          ...prev,
-          "✓ Intelligence analysis complete"
-        ]);
-        setStages(prev => prev.map(s => s.id === 2 ? { ...s, status: "complete" } : s));
 
-        // Stage 3: Network Building
-        setStages(prev => prev.map(s => s.id === 3 ? { ...s, status: "processing" } : s));
-        setStatusMessages(prev => [
-          ...prev,
-          "Mapping journalist-topic relationships...",
-          "Generating network graph..."
-        ]);
-        setStages(prev => prev.map(s => s.id === 3 ? { ...s, status: "complete" } : s));
-        setStatusMessages(prev => [
-          ...prev,
-          "✓ Network graph constructed"
-        ]);
+        setStatusMessages((prev) => [...prev, "✓ Analysis complete."]);
+        setStages((prev) =>
+          prev.map((s) =>
+            s.id === 2 ? { ...s, status: "complete" } : s
+          )
+        );
+
+        // Stage 3: Network Graph
+        setStatusMessages((prev) => [...prev, "Building network graph..."]);
+        setStages((prev) =>
+          prev.map((s) =>
+            s.id === 3 ? { ...s, status: "processing" } : s
+          )
+        );
+        setTimeout(() => {
+          setStages((prev) =>
+            prev.map((s) =>
+              s.id === 3 ? { ...s, status: "complete" } : s
+            )
+          );
+          setStatusMessages((prev) => [
+            ...prev,
+            "✓ Network graph built successfully.",
+          ]);
+        }, 1000);
 
         // Stage 4: Visualization
-        setStages(prev => prev.map(s => s.id === 4 ? { ...s, status: "processing" } : s));
-        setStatusMessages(prev => [
+        setStages((prev) =>
+          prev.map((s) =>
+            s.id === 4 ? { ...s, status: "processing" } : s
+          )
+        );
+        setStatusMessages((prev) => [
           ...prev,
-          "Preparing interactive dashboard..."
-        ]);
-        setStages(prev => prev.map(s => s.id === 4 ? { ...s, status: "complete" } : s));
-        setStatusMessages(prev => [
-          ...prev,
-          "✓ All stages complete!",
-          "Redirecting to dashboard..."
+          "Preparing visualization...",
         ]);
 
-        // Only REAL data set for dashboard, no fallback/generator
-        sessionStorage.setItem("outletData", JSON.stringify({
-          outlet,
-          detectedWebsite: website || "",
-          journalists: analyzed.journalists,
-          totalArticles: analyzed.journalists.reduce((a, j) => a + (j.articleCount || 0), 0),
-          topSection: { name: "N/A", percentage: 0 },
-          mostActive: { name: "N/A", count: 0 }
-        }));
-        setTimeout(() => navigate("/dashboard"), 1000);
+        sessionStorage.setItem(
+          "outletData",
+          JSON.stringify({
+            outlet,
+            detectedWebsite: website,
+            journalists: analyzed.journalists,
+            totalArticles: analyzed.journalists.reduce(
+              (a, j) => a + (j.articleCount || 0),
+              0
+            ),
+            topSection: { name: "N/A", percentage: 0 },
+            mostActive: { name: "N/A", count: 0 },
+          })
+        );
 
-      } catch (err) {
-        setStatusMessages(prev => [
+        setTimeout(() => {
+          setStages((prev) =>
+            prev.map((s) =>
+              s.id === 4 ? { ...s, status: "complete" } : s
+            )
+          );
+          setStatusMessages((prev) => [
+            ...prev,
+            "✓ Visualization ready! Redirecting to dashboard...",
+          ]);
+          navigate("/dashboard");
+        }, 1500);
+      } catch (error) {
+        setStatusMessages((prev) => [
           ...prev,
-          "❌ Error during processing: " + (err?.message || "Unknown error")
+          "❌ Critical error occurred.",
+          (error as Error).message,
         ]);
+        setShowHomeButton(true);
       }
     };
 
@@ -147,13 +199,13 @@ const Processing = () => {
   }, [outlet, navigate]);
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4">
-      <div className="container max-w-5xl mx-auto">
+    <div className="min-h-screen bg-background py-12 px-4 flex flex-col justify-between">
+      <div className="container max-w-5xl mx-auto flex-grow">
         <div className="text-center mb-12 animate-fade-in">
           <h1 className="text-4xl font-bold mb-2">Analyzing {outlet}</h1>
           <p className="text-muted-foreground">Processing in real-time...</p>
         </div>
-        {/* Website Detection Result */}
+
         {detectedWebsite && (
           <div className="mb-12 animate-slide-up">
             <div className="gradient-card p-8 rounded-xl shadow-elevated border border-secondary/30">
@@ -162,18 +214,22 @@ const Processing = () => {
                   <Globe className="h-6 w-6 text-secondary" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-semibold">🌐 Detected Official Website</h2>
+                  <h2 className="text-2xl font-semibold">
+                    🌐 Detected Official Website
+                  </h2>
                 </div>
               </div>
-              <div className="text-4xl font-bold text-secondary mb-2">{detectedWebsite}</div>
+              <div className="text-3xl font-bold text-secondary mb-2">
+                {detectedWebsite}
+              </div>
               <div className="flex items-center gap-2 text-sm">
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
                 <span className="text-green-500">Verified ✓</span>
-                <span className="text-muted-foreground ml-4">Estimated journalists: {detectedWebsite ? '30+' : '0'}</span>
               </div>
             </div>
           </div>
         )}
+
         <div className="grid md:grid-cols-2 gap-8">
           {/* Progress Section */}
           <div className="animate-scale-in">
@@ -192,11 +248,15 @@ const Processing = () => {
                       )}
                     </div>
                     <div className="flex-1">
-                      <h3 className={`font-medium ${
-                        stage.status === "complete" ? "text-green-500" :
-                        stage.status === "processing" ? "text-secondary" :
-                        "text-muted-foreground"
-                      }`}>
+                      <h3
+                        className={`font-medium ${
+                          stage.status === "complete"
+                            ? "text-green-500"
+                            : stage.status === "processing"
+                            ? "text-secondary"
+                            : "text-muted-foreground"
+                        }`}
+                      >
                         Stage {stage.id}: {stage.label}
                       </h3>
                     </div>
@@ -205,17 +265,18 @@ const Processing = () => {
               </div>
             </div>
           </div>
+
           {/* Live Status Feed */}
           <div className="animate-scale-in" style={{ animationDelay: "0.1s" }}>
             <div className="gradient-card p-8 rounded-xl shadow-elevated border border-border h-full">
               <h2 className="text-2xl font-semibold mb-6">Live Status Feed</h2>
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {statusMessages.map((message, index) => (
+                {statusMessages.map((msg, i) => (
                   <div
-                    key={index}
+                    key={i}
                     className="text-sm text-muted-foreground animate-fade-in py-1 border-l-2 border-secondary/30 pl-3"
                   >
-                    {message}
+                    {msg}
                   </div>
                 ))}
               </div>
@@ -223,6 +284,18 @@ const Processing = () => {
           </div>
         </div>
       </div>
+
+      {/* Global Bottom Button */}
+      {showHomeButton && (
+        <div className="flex justify-center pb-10 mt-12">
+          <button
+            onClick={() => navigate("/")}
+            className="px-8 py-3 rounded-lg bg-secondary text-white font-medium hover:bg-secondary/80 transition-all shadow-lg"
+          >
+            ⬅ Back to Home
+          </button>
+        </div>
+      )}
     </div>
   );
 };
