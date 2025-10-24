@@ -1,0 +1,183 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 221 68% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 221 68% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 221 68% 12%;
+
+    --primary: 221 68% 32%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 221 80% 45%;
+
+    --secondary: 188 95% 43%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 220 17% 93%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 188 95% 43%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 17% 88%;
+    --input: 220 17% 88%;
+    --ring: 221 68% 32%;
+
+    --radius: 0.75rem;
+
+    --topic-orange: 25 95% 53%;
+    --topic-politics: 260 60% 55%;
+    --topic-sports: 145 70% 45%;
+    --topic-business: 188 95% 43%;
+    --topic-tech: 280 75% 60%;
+    --topic-entertainment: 340 75% 55%;
+    --topic-health: 160 65% 50%;
+
+    --gradient-hero: linear-gradient(135deg, hsl(221 68% 32%), hsl(221 80% 45%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(220 17% 98%));
+    --shadow-glow: 0 0 40px hsl(221 68% 32% / 0.15);
+    --shadow-elevated: 0 10px 30px -10px hsl(221 68% 32% / 0.2);
+  }
+
+  .dark {
+    --background: 221 68% 8%;
+    --foreground: 0 0% 98%;
+
+    --card: 221 50% 12%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 221 50% 12%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 221 68% 32%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 221 80% 45%;
+
+    --secondary: 188 95% 43%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 221 40% 18%;
+    --muted-foreground: 220 17% 65%;
+
+    --accent: 188 95% 43%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 221 40% 20%;
+    --input: 221 40% 20%;
+    --ring: 188 95% 43%;
+
+    --topic-orange: 25 95% 53%;
+    --topic-politics: 260 60% 55%;
+    --topic-sports: 145 70% 45%;
+    --topic-business: 188 95% 43%;
+    --topic-tech: 280 75% 60%;
+    --topic-entertainment: 340 75% 55%;
+    --topic-health: 160 65% 50%;
+
+    --gradient-hero: linear-gradient(135deg, hsl(221 68% 15%), hsl(221 68% 32%));
+    --gradient-card: linear-gradient(180deg, hsl(221 50% 12%), hsl(221 50% 14%));
+    --shadow-glow: 0 0 40px hsl(188 95% 43% / 0.2);
+    --shadow-elevated: 0 10px 30px -10px hsl(0 0% 0% / 0.5);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+
+  html {
+    @apply dark;
+  }
+}
+
+@layer utilities {
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+  
+  .gradient-card {
+    background: var(--gradient-card);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.5s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.6s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.4s ease-out;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
