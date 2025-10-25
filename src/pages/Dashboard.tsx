@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Download, FileJson, X, Users, FileText, TrendingUp, Award } from "lucide-react";
+import { Search, Download, FileJson, X, Users, FileText, TrendingUp, Award, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,14 +10,14 @@ import JournalistCard from "@/components/JournalistCard";
 import NetworkGraph from "@/components/NetworkGraph";
 import AnalyticsTab from "@/components/AnalyticsTab";
 import DataTable from "@/components/DataTable";
-import ComparisonTab from "@/components/ComparisonTab";
-import { OutletData, generateOutletData } from "@/lib/mockData";
+import { OutletData } from "@/lib/mockData";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [outletData, setOutletData] = useState<OutletData | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showBanner, setShowBanner] = useState(true);
+  const [isClearing, setIsClearing] = useState(false);
 
   useEffect(() => {
     const dataStr = sessionStorage.getItem("outletData");
@@ -28,7 +28,10 @@ const Dashboard = () => {
         !Array.isArray(parsed.journalists) ||
         parsed.journalists.length === 0
       ) {
-        parsed = generateOutletData(parsed.outlet);
+console.error("No journalists found");
+toast.error("No journalists found. Please try a different outlet.");
+navigate("/");
+return;
       }
       setOutletData(parsed);
     } else {
@@ -36,17 +39,61 @@ const Dashboard = () => {
     }
   }, [navigate]);
 
+  // ============= CLEAR CACHE FUNCTION =============
+  const handleClearCache = async () => {
+    if (!window.confirm('⚠️ Clear all cached data?\n\nThis will delete all saved journalist information from the database and cannot be undone.\n\nAre you sure?')) {
+      return;
+    }
+
+    setIsClearing(true);
+    
+    try {
+      const response = await fetch('/api/database/clear', {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success(
+          `Cache Cleared Successfully!\n\n` +
+          `Deleted:\n` +
+          `• ${data.deleted.journalists} journalists\n` +
+          `• ${data.deleted.topics} topics\n` +
+          `• ${data.deleted.keywords} keywords`,
+          {
+            duration: 5000,
+          }
+        );
+        
+        // Clear session storage as well
+        sessionStorage.removeItem('outletData');
+        
+        // Redirect to home after 2 seconds
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+      } else {
+        toast.error(`Failed to clear cache: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Clear cache error:', error);
+      toast.error(`Failed to clear cache: ${error.message}`);
+    } finally {
+      setIsClearing(false);
+    }
+  };
+  // ===============================================
+
   if (!outletData) return null;
 
-if (!outletData.journalists || outletData.journalists.length === 0) {
-  return (
-    <div className="min-h-screen flex items-center justify-center text-lg text-muted-foreground">
-      No journalist profiles found for this outlet.
-    </div>
-  );
-}
-
-
+  if (!outletData.journalists || outletData.journalists.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-lg text-muted-foreground">
+        No journalist profiles found for this outlet.
+      </div>
+    );
+  }
 
   const journalists = outletData.journalists ?? [];
   const totalArticles = outletData.totalArticles ?? journalists.reduce((a, j) => a + (j.articleCount || 0), 0);
@@ -119,7 +166,20 @@ if (!outletData.journalists || outletData.journalists.length === 0) {
                 />
               </div>
             </div>
+            
+            {/* ============= UPDATED BUTTONS WITH CLEAR CACHE ============= */}
             <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleClearCache}
+                disabled={isClearing}
+                className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200 hover:border-red-300 transition-all"
+                title="Clear all cached journalist data from database"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isClearing ? "Clearing..." : "Clear Cache"}
+              </Button>
               <Button variant="outline" size="sm" onClick={handleExportCSV}>
                 <Download className="h-4 w-4 mr-2" />
                 CSV
@@ -129,6 +189,7 @@ if (!outletData.journalists || outletData.journalists.length === 0) {
                 JSON
               </Button>
             </div>
+            {/* ========================================================== */}
           </div>
         </div>
       </header>
@@ -210,11 +271,10 @@ if (!outletData.journalists || outletData.journalists.length === 0) {
           {/* Right Column - Tabs */}
           <div className="lg:col-span-8 animate-slide-up" style={{ animationDelay: "0.1s" }}>
             <Tabs defaultValue="network" className="w-full">
-              <TabsList className="w-full grid grid-cols-4 bg-card border border-border">
+              <TabsList className="w-full grid grid-cols-3 bg-card border border-border">
                 <TabsTrigger value="network">Network Graph</TabsTrigger>
                 <TabsTrigger value="analytics">Analytics</TabsTrigger>
                 <TabsTrigger value="data">Data Table</TabsTrigger>
-                <TabsTrigger value="comparison">Comparison</TabsTrigger>
               </TabsList>
               <div className="mt-6">
                 <TabsContent value="network" className="m-0">
@@ -226,9 +286,6 @@ if (!outletData.journalists || outletData.journalists.length === 0) {
                 <TabsContent value="data" className="m-0">
                   <DataTable journalists={journalists} />
                 </TabsContent>
-                <TabsContent value="comparison" className="m-0">
-                  <ComparisonTab currentOutlet={outletData} />
-                </TabsContent>
               </div>
             </Tabs>
           </div>
@@ -237,4 +294,5 @@ if (!outletData.journalists || outletData.journalists.length === 0) {
     </div>
   );
 };
+
 export default Dashboard;

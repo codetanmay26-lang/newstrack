@@ -146,7 +146,22 @@ const DataTable = ({ journalists }: DataTableProps) => {
           <tbody>
             {paginatedData.map((journalist) => (
               <tr key={journalist.id} className="border-b border-border/50 hover:bg-muted/50 transition-colors">
-                <td className="py-3 px-4 font-medium">{journalist.name}</td>
+                {/* ✅ UPDATED: Make name clickable if profileUrl exists */}
+                <td className="py-3 px-4 font-medium">
+                  {journalist.profileUrl ? (
+                    <a
+                      href={journalist.profileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline cursor-pointer"
+                      title={`View ${journalist.name}'s profile`}
+                    >
+                      {journalist.name}
+                    </a>
+                  ) : (
+                    journalist.name
+                  )}
+                </td>
                 <td className="py-3 px-4">
                   <Badge className={`${getTopicColor(journalist.section)} text-white`}>
                     {journalist.section}
