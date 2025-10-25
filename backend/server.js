@@ -80,35 +80,23 @@ app.get('/api/health', (req, res) => {
 });
 
 // ============= FIX 2: DYNAMIC WEBSITE DETECTION =============
-app.post('/api/detect-website', async (req, res) => {
+app.post("/detect", async (req, res) => {
   const { outlet } = req.body;
+  const website = await getOfficialWebsite(outlet);
 
-  if (!outlet) {
-    return res.status(400).json({ error: 'No outlet name provided' });
-  }
-
-  try {
-    const { getOfficialWebsite } = await import('./advancedScraper.js');
-    const website = await getOfficialWebsite(outlet);
-
-    res.json({
-      outlet,
-      website,
-      method: 'search-based'
-    });
-  } catch (error) {
-    console.error('Website detection error:', error.message);
-
-    const sanitized = outlet.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const fallbackUrl = `https://www.${sanitized}.com`;
-
-    res.json({
-      outlet,
-      website: fallbackUrl,
-      method: 'fallback-pattern'
+  if (!website) {
+    return res.status(400).json({
+      error: "No valid website found. Please enter a real outlet name.",
     });
   }
+
+  res.json({
+    outlet,
+    website,
+    message: "✅ Valid website verified.",
+  });
 });
+
 
 // ============= FIX 1: DATABASE RETRIEVAL ENDPOINTS =============
 

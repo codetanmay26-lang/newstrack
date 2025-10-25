@@ -114,14 +114,6 @@ const Landing = () => {
       <footer className="py-8 border-t border-border bg-card">
         <div className="container px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
-            <a href="/dashboard" className="hover:text-secondary transition-colors">
-              Dashboard
-            </a>
-            <span>•</span>
-            <a href="/documentation" className="hover:text-secondary transition-colors">
-              Documentation
-            </a>
-            <span>•</span>
             <a href="/about" className="hover:text-secondary transition-colors">
               About
             </a>

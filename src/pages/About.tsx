@@ -116,14 +116,6 @@ const About = () => {
         {/* Navigation */}
         <div className="mt-12 text-center">
           <div className="flex justify-center gap-4 text-sm text-muted-foreground">
-            <a href="/" className="hover:text-secondary transition-colors">
-              Home
-            </a>
-            <span>•</span>
-            <a href="/documentation" className="hover:text-secondary transition-colors">
-              Documentation
-            </a>
-            <span>•</span>
             <a href="/dashboard" className="hover:text-secondary transition-colors">
               Dashboard
             </a>

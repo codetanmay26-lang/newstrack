@@ -4,6 +4,7 @@ import { CheckCircle2, Loader2, Globe } from "lucide-react";
 import { detectWebsite, extractJournalists } from "../services/scraper";
 import { analyzeJournalists } from "../services/analysis";
 
+// Interface definition
 interface ProcessingStage {
   id: number;
   label: string;
@@ -35,11 +36,25 @@ const Processing = () => {
         // Stage 0: Website Detection
         const website = await detectWebsite(outlet);
 
-        if (!website) {
+        // ✅ Website Validation Logic (prevents fake/random URLs)
+        const invalidPatterns = [
+          "random.com",
+          "example.com",
+          "undefined",
+          "null",
+        ];
+
+        const isInvalid =
+          !website ||
+          invalidPatterns.some((p) => website.includes(p)) ||
+          website.length < 10 ||
+          !website.startsWith("http");
+
+        if (isInvalid) {
           setStatusMessages((prev) => [
             ...prev,
-            "❌ No official website detected for this outlet.",
-            "Process stopped — please verify the outlet name.",
+            "❌ Invalid or unreachable website detected.",
+            "Process stopped — please check the outlet name.",
           ]);
           setStages((prev) =>
             prev.map((s) =>
@@ -50,10 +65,11 @@ const Processing = () => {
           return;
         }
 
+        // Stage 0 success
         setDetectedWebsite(website);
         setStatusMessages((prev) => [
           ...prev,
-          `🌐 Detected website: ${website}`,
+          `🌐 Verified website: ${website}`,
           "Proceeding to journalist extraction...",
         ]);
         setStages((prev) =>
@@ -73,13 +89,10 @@ const Processing = () => {
           "Extracting journalist details from the website...",
         ]);
 
-        // ✅ FIX: extractJournalists returns an object, not array
         let extractedData: any;
 
         try {
           extractedData = await extractJournalists(website);
-
-          // ✅ Extract the journalists array from the response object
           const journalists = extractedData.journalists || [];
 
           if (!journalists || journalists.length === 0) {
@@ -148,16 +161,22 @@ const Processing = () => {
             "Preparing visualization...",
           ]);
 
-          // ✅ Save complete data with analytics
           sessionStorage.setItem(
             "outletData",
             JSON.stringify({
               outlet,
               detectedWebsite: extractedData.detectedWebsite || website,
               journalists: analyzed.journalists,
-              totalArticles: extractedData.totalArticles || analyzed.journalists.reduce((a, j) => a + (j.articleCount || 0), 0),
-              topSection: extractedData.topSection || { name: "N/A", percentage: 0 },
-              mostActive: extractedData.mostActive || { name: "N/A", count: 0 },
+              totalArticles:
+                extractedData.totalArticles ||
+                analyzed.journalists.reduce(
+                  (a, j) => a + (j.articleCount || 0),
+                  0
+                ),
+              topSection:
+                extractedData.topSection || { name: "N/A", percentage: 0 },
+              mostActive:
+                extractedData.mostActive || { name: "N/A", count: 0 },
             })
           );
 
@@ -173,7 +192,6 @@ const Processing = () => {
             ]);
             navigate("/dashboard");
           }, 1500);
-
         } catch (err) {
           setStatusMessages((prev) => [
             ...prev,
@@ -188,7 +206,6 @@ const Processing = () => {
           setShowHomeButton(true);
           return;
         }
-
       } catch (error) {
         setStatusMessages((prev) => [
           ...prev,
@@ -235,7 +252,6 @@ const Processing = () => {
         )}
 
         <div className="grid md:grid-cols-2 gap-8">
-          {/* Progress Section */}
           <div className="animate-scale-in">
             <div className="gradient-card p-8 rounded-xl shadow-elevated border border-border">
               <h2 className="text-2xl font-semibold mb-6">Processing Stages</h2>
@@ -270,8 +286,7 @@ const Processing = () => {
             </div>
           </div>
 
-          {/* Live Status Feed */}
-          <div className="animate-scale-in" style={{ animationDelay: "0.1s" }}>
+          <div className="animate-scale-in">
             <div className="gradient-card p-8 rounded-xl shadow-elevated border border-border h-full">
               <h2 className="text-2xl font-semibold mb-6">Live Status Feed</h2>
               <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -289,7 +304,6 @@ const Processing = () => {
         </div>
       </div>
 
-      {/* Global Bottom Button */}
       {showHomeButton && (
         <div className="flex justify-center pb-10 mt-12">
           <button
