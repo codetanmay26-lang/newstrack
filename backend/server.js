@@ -115,7 +115,7 @@ app.post('/api/detect-website', async (req, res) => {
 // Get cached journalists from database
 app.get('/api/journalists/:outlet', async (req, res) => {
   try {
-    const { getJournalists } = await import('./database.js');  // ✅ FIXED: ES6 import
+    const { getJournalists } = await import('./database.js');
     const outlet = req.params.outlet;
 
     const journalists = getJournalists(outlet);
@@ -166,7 +166,7 @@ app.get('/api/journalists/:outlet', async (req, res) => {
 // List all outlets in database
 app.get('/api/outlets', async (req, res) => {
   try {
-    const { getAllOutlets } = await import('./database.js');  // ✅ FIXED: ES6 import
+    const { getAllOutlets } = await import('./database.js');
     const outlets = getAllOutlets();
     res.json({ outlets });
   } catch (error) {
@@ -255,7 +255,7 @@ app.post('/api/scrape', async (req, res) => {
 
     // ============= FIX 1: DATABASE INTEGRATION =============
     try {
-      const { saveJournalists } = await import('./database.js');  // ✅ FIXED: ES6 import
+      const { saveJournalists } = await import('./database.js');
       const dbResult = saveJournalists(outletHost, journalists);
       console.log(`💾 Saved ${dbResult.count} journalists to database`);
     } catch (dbError) {
@@ -481,7 +481,7 @@ async function universalScraper(url, outletHost) {
   }
 }
 
-// ============= SPECIALIZED SCRAPERS (KEPT EXACTLY AS-IS) =============
+// ============= SPECIALIZED SCRAPERS =============
 
 async function scrapeNDTV(page, baseUrl) {
   console.log('🔍 Scraping NDTV with ENHANCED logic...');
@@ -492,6 +492,7 @@ async function scrapeNDTV(page, baseUrl) {
     const ndtvAuthors = await page.evaluate(() => {
       const results = [];
 
+      // JSON-LD extraction
       const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
       scripts.forEach(script => {
         try {
@@ -505,11 +506,13 @@ async function scrapeNDTV(page, baseUrl) {
         } catch (e) {}
       });
 
+      // Meta author
       const metaAuthor = document.querySelector('meta[name="author"]');
       if (metaAuthor) {
         results.push(metaAuthor.getAttribute('content'));
       }
 
+      // ✅ FIXED: Use getAttribute instead of .href
       const selectors = [
         '.pst-byln a', '.pst-by a', '.author-name', '.article-author a',
         '.ins__story-body .posted-by a', 'span[itemprop="author"] span[itemprop="name"]',
@@ -522,12 +525,36 @@ async function scrapeNDTV(page, baseUrl) {
         document.querySelectorAll(selector).forEach(el => {
           const text = el.textContent.trim();
           if (text && text.length > 2 && text.length < 50) {
-            results.push(text);
+            let profileUrl = null;
+            
+            // ✅ FIX: Use getAttribute for anchor tags
+            if (el.tagName === 'A') {
+              profileUrl = el.getAttribute('href');
+            } else {
+              const parentA = el.closest('a');
+              if (parentA) {
+                profileUrl = parentA.getAttribute('href');
+              }
+            }
+            
+            // ✅ FIX: Make absolute URL if relative
+            if (profileUrl) {
+              if (profileUrl.startsWith('/')) {
+                profileUrl = 'https://www.ndtv.com' + profileUrl;
+              } else if (!profileUrl.startsWith('http')) {
+                profileUrl = 'https://www.ndtv.com/' + profileUrl;
+              }
+            }
+            
+            results.push({
+              name: text,
+              profileUrl: profileUrl
+            });
           }
         });
       });
 
-      return [...new Set(results)];
+      return results;
     });
 
     console.log(`📝 NDTV Main Page: Found ${ndtvAuthors.length} potential authors`);
@@ -568,7 +595,12 @@ async function scrapeNDTV(page, baseUrl) {
               const data = JSON.parse(script.textContent);
               if (data.author) {
                 const authorName = data.author.name || data.author;
-                if (typeof authorName === 'string') results.push(authorName);
+                if (typeof authorName === 'string') {
+                  results.push({
+                    name: authorName,
+                    profileUrl: null
+                  });
+                }
               }
             } catch (e) {}
           });
@@ -582,7 +614,31 @@ async function scrapeNDTV(page, baseUrl) {
           selectors.forEach(sel => {
             document.querySelectorAll(sel).forEach(el => {
               const text = el.textContent.trim();
-              if (text && text.length > 2 && text.length < 50) results.push(text);
+              if (text && text.length > 2 && text.length < 50) {
+                let profileUrl = null;
+                
+                if (el.tagName === 'A') {
+                  profileUrl = el.getAttribute('href');
+                } else {
+                  const parentA = el.closest('a');
+                  if (parentA) {
+                    profileUrl = parentA.getAttribute('href');
+                  }
+                }
+                
+                if (profileUrl) {
+                  if (profileUrl.startsWith('/')) {
+                    profileUrl = 'https://www.ndtv.com' + profileUrl;
+                  } else if (!profileUrl.startsWith('http')) {
+                    profileUrl = 'https://www.ndtv.com/' + profileUrl;
+                  }
+                }
+                
+                results.push({
+                  name: text,
+                  profileUrl: profileUrl
+                });
+              }
             });
           });
 
@@ -600,12 +656,25 @@ async function scrapeNDTV(page, baseUrl) {
       }
     }
 
-    const uniqueAuthors = [...new Set(ndtvAuthors)];
+    // Deduplicate by name
+    const uniqueAuthorsMap = new Map();
+    ndtvAuthors.forEach(author => {
+      const authorData = typeof author === 'string' 
+        ? { name: author, profileUrl: null } 
+        : author;
+      
+      const key = authorData.name.toLowerCase();
+      if (!uniqueAuthorsMap.has(key) || authorData.profileUrl) {
+        uniqueAuthorsMap.set(key, authorData);
+      }
+    });
 
-    uniqueAuthors.forEach((name, i) => {
-      if (name && !/team|staff|desk|bureau|ndtv|whatsapp|twitter|facebook|reddit|linkedin|instagram|telegram|youtube|share|follow|subscribe|newsletter|email|rss|feed|search|menu|login|signup|contact|about|privacy|terms|copyright/i.test(name)) {
+    const uniqueAuthors = Array.from(uniqueAuthorsMap.values());
+
+    uniqueAuthors.forEach((authorData, i) => {
+      if (authorData.name && !/team|staff|desk|bureau|ndtv|whatsapp|twitter|facebook|reddit|linkedin|instagram|telegram|youtube|share|follow|subscribe|newsletter|email|rss|feed|search|menu|login|signup|contact|about|privacy|terms|copyright/i.test(authorData.name)) {
         
-        const nameL = name.toLowerCase();
+        const nameL = authorData.name.toLowerCase();
         let detectedSection = 'Politics';
 
         if (nameL.includes('sport') || nameL.includes('cricket') || nameL.includes('football')) {
@@ -630,18 +699,19 @@ async function scrapeNDTV(page, baseUrl) {
 
         journalists.push({
           id: i + 1,
-          name: name.trim(),
+          name: authorData.name.trim(),
+          profileUrl: authorData.profileUrl,
           section: detectedSection,
           articleCount: Math.floor(Math.random() * 45) + 10,
           date: new Date().toISOString().split('T')[0],
-          contact: `${name.toLowerCase().replace(/\s+/g, '.')}@ndtv.com`,
+          contact: `${authorData.name.toLowerCase().replace(/\s+/g, '.')}@ndtv.com`,
           source: 'ndtv.com',
           topics: [detectedSection, 'Breaking News', 'Analysis'],
           keywords: ['news', detectedSection.toLowerCase(), 'india'],
           latestArticle: `Latest ${detectedSection} Coverage`,
           beat: detectedSection,
-          email: `${name.toLowerCase().replace(/\s+/g, '.')}@ndtv.com`,
-          twitter: `@${name.replace(/\s+/g, '')}`,
+          email: `${authorData.name.toLowerCase().replace(/\s+/g, '.')}@ndtv.com`,
+          twitter: `@${authorData.name.replace(/\s+/g, '')}`,
           expertise: `${detectedSection}, Reporting`
         });
       }
@@ -947,38 +1017,30 @@ function cleanAndDeduplicateJournalists(journalists, outletHost) {
     .filter(j => {
       const name = j.name.trim();
       
-      // Basic checks
       if (!name || name.length < 3 || name.length > 100 || !/[A-Za-z]/.test(name)) {
         return false;
       }
 
-      // ============= ENHANCED FILTERS TO BLOCK DATES/NUMBERS =============
-      
-      // 1. Reject dates (Oct, Jan, Monday, am, pm, IST, etc.)
       if (/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|monday|tuesday|wednesday|thursday|friday|saturday|sunday|am|pm|ist|utc|gmt)\b/i.test(name)) {
         console.log(`❌ Filtered date pattern: "${name}"`);
         return false;
       }
 
-      // 2. Reject if starts or ends with numbers
       if (/^\d+|(\d+$)/.test(name.trim())) {
         console.log(`❌ Filtered number start/end: "${name}"`);
         return false;
       }
 
-      // 3. Reject year patterns (2020-2025, etc.)
       if (/\b(19|20)\d{2}\b/.test(name)) {
         console.log(`❌ Filtered year pattern: "${name}"`);
         return false;
       }
 
-      // 4. Reject time patterns (09:44, 12:30, etc.)
       if (/\d{1,2}:\d{2}/.test(name)) {
         console.log(`❌ Filtered time pattern: "${name}"`);
         return false;
       }
 
-      // 5. Reject if >30% digits
       const digitCount = (name.match(/\d/g) || []).length;
       const digitRatio = digitCount / name.length;
       if (digitRatio > 0.3) {
@@ -986,22 +1048,17 @@ function cleanAndDeduplicateJournalists(journalists, outletHost) {
         return false;
       }
 
-      // 6. Reject single-word section labels
       const wordCount = name.split(/\s+/).length;
       if (wordCount === 1 && /^(sports?|politics?|business|tech|entertainment|opinion|news|breaking|latest|updated|posted|read|views?|comments?)$/i.test(name)) {
         console.log(`❌ Filtered section label: "${name}"`);
         return false;
       }
 
-      // 7. Must have at least 2 words (or be 15+ chars for single names)
       if (wordCount < 2 && name.length < 15) {
         console.log(`❌ Filtered single word: "${name}"`);
         return false;
       }
 
-      // ===================================================================
-
-      // Original blacklist
       if (/team|staff|guest|service|unknown|bureau|by|posted|updated|whatsapp|twitter|facebook|reddit|linkedin|instagram|telegram|youtube|share|follow|subscribe|newsletter|email|rss|feed|search|menu|login|signup|contact|about|privacy|terms|copyright|show|read|click|advertisement/i.test(name)) {
         console.log(`❌ Filtered blacklist word: "${name}"`);
         return false;
@@ -1030,7 +1087,6 @@ app.delete('/api/database/clear', async (req, res) => {
   try {
     const { db } = await import('./database.js');
     
-    // Clear all tables
     const journalistsDeleted = db.prepare('DELETE FROM journalists').run();
     const topicsDeleted = db.prepare('DELETE FROM topics').run();
     const keywordsDeleted = db.prepare('DELETE FROM keywords').run();
@@ -1081,7 +1137,6 @@ app.delete('/api/journalists/:outlet', async (req, res) => {
     });
   }
 });
-
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

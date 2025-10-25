@@ -1,4 +1,3 @@
-
 import Database from 'better-sqlite3';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -19,6 +18,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     outlet TEXT NOT NULL,
     name TEXT NOT NULL,
+    profileUrl TEXT,
     section TEXT,
     articleCount INTEGER DEFAULT 0,
     latestArticle TEXT,
@@ -56,8 +56,8 @@ db.exec(`
 // Prepared statements for performance
 const insertJournalist = db.prepare(`
   INSERT OR REPLACE INTO journalists 
-  (outlet, name, section, articleCount, latestArticle, date, contact, source, beat, email, twitter, expertise)
-  VALUES (@outlet, @name, @section, @articleCount, @latestArticle, @date, @contact, @source, @beat, @email, @twitter, @expertise)
+  (outlet, name, profileUrl, section, articleCount, latestArticle, date, contact, source, beat, email, twitter, expertise)
+  VALUES (@outlet, @name, @profileUrl, @section, @articleCount, @latestArticle, @date, @contact, @source, @beat, @email, @twitter, @expertise)
 `);
 
 const insertTopic = db.prepare(`
@@ -104,6 +104,7 @@ export function saveJournalists(outlet, journalistsData) {
       const result = insertJournalist.run({
         outlet,
         name: journalist.name,
+        profileUrl: journalist.profileUrl || null,  // ✅ ADDED THIS LINE
         section: journalist.section || 'General',
         articleCount: journalist.articleCount || 0,
         latestArticle: journalist.latestArticle || '',
