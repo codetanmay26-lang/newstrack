@@ -141,7 +141,6 @@ newstrack-main
 │  │  └─ hero-network.jpg
 │  ├─ components
 │  │  ├─ AnalyticsTab.tsx
-│  │  ├─ ComparisonTab.tsx
 │  │  ├─ DataTable.tsx
 │  │  ├─ JournalistCard.tsx
 │  │  ├─ NetworkGraph.tsx
@@ -207,7 +206,6 @@ newstrack-main
 │  ├─ pages
 │  │  ├─ About.tsx
 │  │  ├─ Dashboard.tsx
-│  │  ├─ Documentation.tsx
 │  │  ├─ Index.tsx
 │  │  ├─ Landing.tsx
 │  │  ├─ NotFound.tsx
@@ -221,6 +219,7 @@ newstrack-main
 ├─ tsconfig.json
 ├─ tsconfig.node.json
 └─ vite.config.ts
+
 ```
 
 ---
@@ -250,4 +249,3 @@ newstrack-main
 Made with ❤️ by CivicMinds
 
 </div>
-
