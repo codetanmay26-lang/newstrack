@@ -25,7 +25,7 @@ const DataTable = ({ journalists }: DataTableProps) => {
   const [sortField, setSortField] = useState<SortField>("articleCount");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
 
   const sections = Array.from(new Set(journalists.map(j => j.section)));
 

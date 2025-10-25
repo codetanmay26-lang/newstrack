@@ -73,10 +73,14 @@ const Processing = () => {
           "Extracting journalist details from the website...",
         ]);
 
-        let journalists: any[] = [];
+        // ✅ FIX: extractJournalists returns an object, not array
+        let extractedData: any;
 
         try {
-          journalists = await extractJournalists(website);
+          extractedData = await extractJournalists(website);
+
+          // ✅ Extract the journalists array from the response object
+          const journalists = extractedData.journalists || [];
 
           if (!journalists || journalists.length === 0) {
             setStatusMessages((prev) => [
@@ -92,11 +96,89 @@ const Processing = () => {
             setShowHomeButton(true);
             return;
           }
+
+          // Stage 2: Analysis
+          setStatusMessages((prev) => [
+            ...prev,
+            `✓ Extracted ${journalists.length} journalist profiles.`,
+            "Starting intelligence analysis...",
+          ]);
+          setStages((prev) =>
+            prev.map((s) =>
+              s.id === 2 ? { ...s, status: "processing" } : s
+            )
+          );
+
+          const analyzed = analyzeJournalists(journalists);
+
+          setStatusMessages((prev) => [...prev, "✓ Analysis complete."]);
+          setStages((prev) =>
+            prev.map((s) =>
+              s.id === 2 ? { ...s, status: "complete" } : s
+            )
+          );
+
+          // Stage 3: Network Graph
+          setStatusMessages((prev) => [...prev, "Building network graph..."]);
+          setStages((prev) =>
+            prev.map((s) =>
+              s.id === 3 ? { ...s, status: "processing" } : s
+            )
+          );
+          setTimeout(() => {
+            setStages((prev) =>
+              prev.map((s) =>
+                s.id === 3 ? { ...s, status: "complete" } : s
+              )
+            );
+            setStatusMessages((prev) => [
+              ...prev,
+              "✓ Network graph built successfully.",
+            ]);
+          }, 1000);
+
+          // Stage 4: Visualization
+          setStages((prev) =>
+            prev.map((s) =>
+              s.id === 4 ? { ...s, status: "processing" } : s
+            )
+          );
+          setStatusMessages((prev) => [
+            ...prev,
+            "Preparing visualization...",
+          ]);
+
+          // ✅ Save complete data with analytics
+          sessionStorage.setItem(
+            "outletData",
+            JSON.stringify({
+              outlet,
+              detectedWebsite: extractedData.detectedWebsite || website,
+              journalists: analyzed.journalists,
+              totalArticles: extractedData.totalArticles || analyzed.journalists.reduce((a, j) => a + (j.articleCount || 0), 0),
+              topSection: extractedData.topSection || { name: "N/A", percentage: 0 },
+              mostActive: extractedData.mostActive || { name: "N/A", count: 0 },
+            })
+          );
+
+          setTimeout(() => {
+            setStages((prev) =>
+              prev.map((s) =>
+                s.id === 4 ? { ...s, status: "complete" } : s
+              )
+            );
+            setStatusMessages((prev) => [
+              ...prev,
+              "✓ Visualization ready! Redirecting to dashboard...",
+            ]);
+            navigate("/dashboard");
+          }, 1500);
+
         } catch (err) {
           setStatusMessages((prev) => [
             ...prev,
             "❌ Live extraction failed.",
-            "No mock data will be used because a real website was found.",
+            (err as Error).message || "Unknown error occurred.",
           ]);
           setStages((prev) =>
             prev.map((s) =>
@@ -107,84 +189,6 @@ const Processing = () => {
           return;
         }
 
-        // Stage 2: Analysis
-        setStatusMessages((prev) => [
-          ...prev,
-          `✓ Extracted ${journalists.length} journalist profiles.`,
-          "Starting intelligence analysis...",
-        ]);
-        setStages((prev) =>
-          prev.map((s) =>
-            s.id === 2 ? { ...s, status: "processing" } : s
-          )
-        );
-
-        const analyzed = analyzeJournalists(journalists);
-
-        setStatusMessages((prev) => [...prev, "✓ Analysis complete."]);
-        setStages((prev) =>
-          prev.map((s) =>
-            s.id === 2 ? { ...s, status: "complete" } : s
-          )
-        );
-
-        // Stage 3: Network Graph
-        setStatusMessages((prev) => [...prev, "Building network graph..."]);
-        setStages((prev) =>
-          prev.map((s) =>
-            s.id === 3 ? { ...s, status: "processing" } : s
-          )
-        );
-        setTimeout(() => {
-          setStages((prev) =>
-            prev.map((s) =>
-              s.id === 3 ? { ...s, status: "complete" } : s
-            )
-          );
-          setStatusMessages((prev) => [
-            ...prev,
-            "✓ Network graph built successfully.",
-          ]);
-        }, 1000);
-
-        // Stage 4: Visualization
-        setStages((prev) =>
-          prev.map((s) =>
-            s.id === 4 ? { ...s, status: "processing" } : s
-          )
-        );
-        setStatusMessages((prev) => [
-          ...prev,
-          "Preparing visualization...",
-        ]);
-
-        sessionStorage.setItem(
-          "outletData",
-          JSON.stringify({
-            outlet,
-            detectedWebsite: website,
-            journalists: analyzed.journalists,
-            totalArticles: analyzed.journalists.reduce(
-              (a, j) => a + (j.articleCount || 0),
-              0
-            ),
-            topSection: { name: "N/A", percentage: 0 },
-            mostActive: { name: "N/A", count: 0 },
-          })
-        );
-
-        setTimeout(() => {
-          setStages((prev) =>
-            prev.map((s) =>
-              s.id === 4 ? { ...s, status: "complete" } : s
-            )
-          );
-          setStatusMessages((prev) => [
-            ...prev,
-            "✓ Visualization ready! Redirecting to dashboard...",
-          ]);
-          navigate("/dashboard");
-        }, 1500);
       } catch (error) {
         setStatusMessages((prev) => [
           ...prev,

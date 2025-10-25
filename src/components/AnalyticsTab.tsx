@@ -55,24 +55,42 @@ const AnalyticsTab = ({ journalists }: AnalyticsTabProps) => {
   return (
     <div className="space-y-6">
       {/* Top Contributors */}
-      <div className="gradient-card p-6 rounded-xl shadow-elevated border border-border">
-        <h3 className="text-lg font-semibold mb-4">Top 10 Contributors by Article Count</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={topContributors} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
-            <YAxis dataKey="name" type="category" width={120} stroke="hsl(var(--muted-foreground))" />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: "hsl(var(--card))", 
-                border: "1px solid hsl(var(--border))",
-                borderRadius: "0.5rem"
-              }} 
-            />
-            <Bar dataKey="articles" fill="hsl(var(--secondary))" radius={[0, 8, 8, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+<div className="gradient-card p-6 rounded-xl shadow-elevated border border-border">
+  <h3 className="text-lg font-semibold mb-4">Top 10 Contributors by Article Count</h3>
+  <ResponsiveContainer width="100%" height={400}>
+    <BarChart data={topContributors} layout="vertical">
+      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+      <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
+      <YAxis 
+        dataKey="name" 
+        type="category" 
+        width={150}
+        stroke="hsl(var(--muted-foreground))"
+        tick={{ fontSize: 11 }}
+        tickFormatter={(value) => {
+          // Truncate long names
+          if (value.length > 20) {
+            return value.substring(0, 18) + '...';
+          }
+          return value;
+        }}
+      />
+      <Tooltip
+        contentStyle={{
+          backgroundColor: "hsl(var(--card))",
+          border: "1px solid hsl(var(--border))",
+          borderRadius: "0.5rem"
+        }}
+        formatter={(value: any, name: any, props: any) => [
+          `${value} articles`,
+          props.payload.name // Show full name in tooltip
+        ]}
+      />
+      <Bar dataKey="articles" fill="hsl(var(--secondary))" radius={[0, 8, 8, 0]} />
+    </BarChart>
+  </ResponsiveContainer>
+</div>
+
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* Coverage Distribution */}
